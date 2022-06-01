@@ -5,21 +5,19 @@ const JwtStrategy = require('passport-jwt').Strategy
 const ExtractJwt = require('passport-jwt').ExtractJwt
 const jsonwebtoken = require('jsonwebtoken')
 const User = require('./models/User')
-const TOKEN_KEY = process.env.TOKEN_KEY
+const Device = require('./models/Device')
 
 passport.use(new LocalStrategy(User.authenticate()))
 passport.serializeUser(User.serializeUser())
 passport.deserializeUser(User.deserializeUser())
 
-const opts = {}
-opts.jwtFromRequest = ExtractJwt.fromAuthHeaderAsBearerToken()
-opts.secretOrKey = TOKEN_KEY
-
-passport.use(new JwtStrategy(opts, (jwt_payload, done) => {
-  User.findOne({id: jwt_payload.sub}, (error, user) => {
-    if (error) {
-      return done(error, false)
-    }
+const USER_TOKEN_KEY = process.env.USER_TOKEN_KEY
+const userOpts = {}
+userOpts.jwtFromRequest = ExtractJwt.fromAuthHeaderAsBearerToken()
+userOpts.secretOrKey = USER_TOKEN_KEY
+passport.use('UserStrategy', new JwtStrategy(userOpts, (jwt_payload, done) => {
+  User.findOne({_id: jwt_payload._id}, (error, user) => {
+    if (error) return done(error, false)
 
     if (user) {
       return done(null, user)
@@ -29,12 +27,35 @@ passport.use(new JwtStrategy(opts, (jwt_payload, done) => {
   })
 }))
 
-exports.getToken = user => jsonwebtoken.sign(user, TOKEN_KEY, { expiresIn: '30d' })
+const DEVICE_TOKEN_KEY = process.env.DEVICE_TOKEN_KEY
+const DEVICE_REFRESH_TOKEN_KEY = process.env.DEVICE_REFRESH_TOKEN_KEY
+const deviceOpts = {}
+deviceOpts.jwtFromRequest = ExtractJwt.fromAuthHeaderAsBearerToken()
+deviceOpts.secretOrKey = DEVICE_TOKEN_KEY
+passport.use('DeviceStrategy', new JwtStrategy(deviceOpts, (jwt_payload, done) => {
+  Device.findOne({_id: jwt_payload._id}, (error, device) => {
+    if (error) return done(error, false)
 
-exports.verifyUser = passport.authenticate('jwt', { session: false })
+    if (device) {
+      return done(null, device)
+    } else {
+      return done(null, false)
+    }
+  })
+}))
 
+exports.getUserToken = user => jsonwebtoken.sign(user, USER_TOKEN_KEY, { expiresIn: '30d' })
+exports.verifyUser = passport.authenticate('UserStrategy', { session: false })
 exports.verifyAdmin = (req, res, next) => req.user.admin ? next() : next(createError(403))
-
 exports.verifyEditor = (req, res, next) => {
   return (req.user.editor || req.user.admin) ? next() : next(createError(403))
 }
+
+exports.getDeviceToken = device => {
+  return jsonwebtoken.sign(device, DEVICE_TOKEN_KEY, { expiresIn: '1d' })
+}
+exports.getDeviceRefreshToken = device => {
+  return jsonwebtoken.sign(device, DEVICE_REFRESH_TOKEN_KEY)
+}
+exports.verifyDeviceClient = passport.authenticate('DeviceStrategy', { session: false })
+exports.verifyDeviceRefreshToken = token => jsonwebtoken.verify(token, DEVICE_REFRESH_TOKEN_KEY)
