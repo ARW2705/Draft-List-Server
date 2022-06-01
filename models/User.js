@@ -1,15 +1,18 @@
 const mongoose = require('mongoose')
 const Schema = mongoose.Schema
 const passportLocalMongoose = require('passport-local-mongoose')
+const uniqueValidator = require('mongoose-unique-validator')
 
-const UserSchema = new Schema({
+const userSchema = new Schema({
   username: {
     type: String,
-    required: true
+    required: true,
+    unique: true
   },
   email: {
     type: String,
-    required: true
+    required: true,
+    unique: true
   },
   admin: {
     type: Boolean,
@@ -24,11 +27,18 @@ const UserSchema = new Schema({
       type: Schema.Types.ObjectId,
       ref: 'Device'
     }
+  ],
+  authoredList: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: 'Beverage'
+    }
   ]
 }, {
   timestamps: true
 })
 
 userSchema.plugin(passportLocalMongoose)
+userSchema.plugin(uniqueValidator)
 
-module.exports = mongoose.model('User', UserSchema)
+module.exports = mongoose.model('User', userSchema)
