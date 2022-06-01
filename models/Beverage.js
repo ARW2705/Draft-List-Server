@@ -2,6 +2,10 @@ const mongoose = require('mongoose')
 const Schema = mongoose.Schema
 
 const beverageSchema = new Schema({
+  author: {
+    type: Schema.Types.ObjectId,
+    ref: 'User'
+  },
   name: {
     type: String,
     required: true
@@ -27,7 +31,10 @@ const beverageSchema = new Schema({
   },
   imageURL: {
     type: String
+  },
+  contentColor: {
+    type: String
   }
 })
 
-module.exports = beverageSchema
+module.exports = mongoose.model('Beverage', beverageSchema)
