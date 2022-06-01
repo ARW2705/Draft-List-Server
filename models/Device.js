@@ -1,9 +1,10 @@
 const mongoose = require('mongoose')
 const Schema = mongoose.Schema
 const localeSchema = require('./Locale')
+const uniqueValidator = require('mongoose-unique-validator')
 
 const deviceSchema = new Schema({
-  owner: {
+  author: {
     type: Schema.Types.ObjectId,
     ref: 'User'
   },
@@ -14,10 +15,14 @@ const deviceSchema = new Schema({
   title: {
     type: String
   },
+  imageURL: {
+    type: String
+  },
   locale: localeSchema,
   hardwareId: {
     type: String,
-    required: true
+    required: true,
+    unique: true
   },
   draftList: [
     {
@@ -28,5 +33,8 @@ const deviceSchema = new Schema({
 }, {
   timestamps: true
 })
+
+deviceSchema.index({ hardwareId: 1 })
+deviceSchema.plugin(uniqueValidator)
 
 module.exports = mongoose.model('Device', deviceSchema)
