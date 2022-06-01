@@ -4,19 +4,15 @@ const Schema = mongoose.Schema
 const containerSchema = new Schema({
   type: {
     type: String,
-    required: true
+    required: true,
+    unique: true
   },
   capacity: {
     type: Number,
     required: true
-  },
-  quantity: {
-    type: Number,
-    required: true
-  },
-  contentColor: {
-    type: String
   }
 })
 
-module.exports = containerSchema
+containerSchema.index({ type: 1 })
+
+module.exports = mongoose.model('Container', containerSchema)
