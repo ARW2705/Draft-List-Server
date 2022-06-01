@@ -11,6 +11,8 @@ const localeSchema = new Schema({
   country: {
     type: String
   }
+}, {
+  _id: false
 })
 
 module.exports = localeSchema
