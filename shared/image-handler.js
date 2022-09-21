@@ -9,12 +9,13 @@ exports.getImagePath = getImagePath
 
 const storeImage = file => {
   return new Promise((resolve, reject) => {
-    if (!path.extname(file.originalname).toLowerCase() === '.webp') {
-      reject({ status: 400, message: 'Invalid image file type' })
+    const extension = file.mimetype.replace('image/', '.')
+    if (!['.jpg', '.jpeg', '.png', '.webp'].includes(extension)) {
+      reject({ status: 400, message: `Invalid image file type: ${extension}` })
     }
 
     const tmpPath = file.path
-    const newFilename = `${file.filename}.webp`
+    const newFilename = `${file.filename}${extension}`
     const targetPath = getImagePath(newFilename)
 
     fs.rename(tmpPath, targetPath, (error) => {
