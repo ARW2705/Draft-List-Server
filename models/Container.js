@@ -7,6 +7,11 @@ const containerSchema = new Schema({
     required: true,
     unique: true
   },
+  name: {
+    type: String,
+    required: true,
+    unique: true
+  },
   capacity: {
     type: Number,
     required: true
