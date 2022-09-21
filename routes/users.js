@@ -15,14 +15,16 @@ userRouter.route('/')
       .then(user => {
         if (!user) return next(createError(404, 'User not found'))
 
-        const { username, email, deviceList, authoredList } = user
+        const { username, email, deviceList, authoredList, previousList } = user
         res.statusCode = 200
         res.setHeader('content-type', 'application/json')
         res.json({
+          _id,
           username,
           email,
           deviceList,
-          authoredList
+          authoredList,
+          previousList
         })
       })
   })
@@ -72,6 +74,9 @@ userRouter.post('/login', (req, res, next) => {
         _id: user._id,
         username: user.username,
         email: user.email,
+        authoredList: user.authoredList,
+        previousList: user.previousList,
+        deviceList: user.deviceList,
         token: authenticate.getUserToken({_id: user._id})
       }
     })
@@ -104,7 +109,15 @@ userRouter.post('/signup', (req, res, next) => {
             res.json({
               success: true,
               status: 'registration successful',
-              token: authenticate.getUserToken({ _id: user._id })
+              user: {
+                _id: user._id,
+                username: user.username,
+                email: user.email,
+                authoredList: [],
+                previousList: [],
+                deviceList: [],
+                token: authenticate.getUserToken({ _id: user._id })
+              }
             })
           })
         }
