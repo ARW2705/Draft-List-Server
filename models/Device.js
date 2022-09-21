@@ -29,6 +29,18 @@ const deviceSchema = new Schema({
       type: Schema.Types.ObjectId,
       ref: 'Draft'
     }
+  ],
+  previousDraftList: [
+    {
+      count: {
+        type: Number,
+        required: true
+      },
+      draft: {
+        type: Schema.Types.ObjectId,
+        ref: 'Draft'
+      }
+    }
   ]
 }, {
   timestamps: true
