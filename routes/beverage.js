@@ -18,21 +18,17 @@ const beverageRouter = express.Router()
 beverageRouter.use(bodyParser.json())
 
 beverageRouter.route('/')
-  .get(authenticate.verifyUser, (req, res, next) => {
-    Beverage.find({})
-      .then(beverages => {
-        res.statusCode = 200
-        res.setHeader('content-type', 'application/json')
-        res.json(beverages)
-      })
-      .catch(next)
-  })
   .post(authenticate.verifyUser, upload.single('image'), (req, res, next) => {
+    const parsed = JSON.parse(req.body.data)
+    const { name, source, style } = parsed
     const parsedBody = {
-      ...(JSON.parse(req.body.data)),
+      ...parsed,
+      name_lower: name.toLowerCase(),
+      source_lower: source.toLowerCase(),
+      style_lower: style.toLowerCase(),
       author: req.user.id
     }
-    const imagePromise = req.file ? imageHandler.storeImage(req.file) : Promise.resolve(null)
+    const imagePromise = req.image ? imageHandler.storeImage(req.image) : Promise.resolve(null)
 
     Promise.all([
       User.findById(req.user.id),
@@ -56,10 +52,30 @@ beverageRouter.route('/')
     .catch(next)
   })
 
-beverageRouter.route('/user')
+beverageRouter.route('/query')
   .get(authenticate.verifyUser, (req, res, next) => {
-    User.findById(req.user.id)
-      .then(user => Beverage.find({ _id: { $in: user.authoredList } }))
+    let query, page, count
+    if (Object.keys(req.query).length > 2) {
+      page = parseInt(req.query.page)
+      count = parseInt(req.query.count)
+      if (req.query.name) {
+        query = { name_lower: req.query.name.toLowerCase() }
+      } else if (req.query.source) {
+        query = { source_lower: req.query.source.toLowerCase() }
+      } else if (req.query.style) {
+        query = { style_lower: req.query.style.toLowerCase() }
+      } else {
+        return next(createError(400, 'Missing or invalid query type'))
+      }
+    } else {
+      return next(createError(400, 'Missing queries'))
+    }
+
+    Beverage
+      .find(query)
+      .sort({ _id: 1 })
+      .skip(page * count)
+      .limit(count)
       .then(beverages => {
         res.statusCode = 200
         res.setHeader('content-type', 'application/json')
@@ -104,10 +120,12 @@ beverageRouter.route('/admin/:beverageId')
 beverageRouter.route('/:beverageId')
   .get(authenticate.verifyUser, (req, res, next) => {
     Beverage.findById(req.params.beverageId)
-      .then(beverages => {
+      .then(beverage => {
+        if (!beverage) return next(createError(404, `Beverage with id ${req.params.beverageId} not found`))
+        
         res.statusCode = 200
         res.setHeader('content-type', 'application/json')
-        res.json(beverages)
+        res.json(beverage)
       })
       .catch(next)
   })
