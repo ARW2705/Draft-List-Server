@@ -33,6 +33,12 @@ const userSchema = new Schema({
       type: Schema.Types.ObjectId,
       ref: 'Beverage'
     }
+  ],
+  previousList: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: 'Beverage'
+    }
   ]
 }, {
   timestamps: true
