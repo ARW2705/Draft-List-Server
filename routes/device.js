@@ -61,7 +61,7 @@ deviceRouter.route('/admin')
         newDevice.save()
       ])
     })
-    .then(([use, finalDevice]) => {
+    .then(([user, finalDevice]) => {
       res.statusCode = 201
       res.setHeader('content-type', 'application/json')
       res.json(finalDevice)
@@ -79,18 +79,6 @@ deviceRouter.route('/admin/confirm')
 deviceRouter.route('/admin/:deviceId')
   .get(authenticate.verifyUser, (req, res, next) => {
     Device.findById(req.params.deviceId)
-      .populate({
-        path: 'draftList',
-        populate: {
-          path: 'beverage'
-        }
-      })
-      .populate({
-        path: 'draftList',
-        populate: {
-          path: 'container.containerInfo'
-        }
-      })
       .then(device => {
         if (!device) return next(createError(404, 'Device not found'))
 
@@ -123,6 +111,7 @@ deviceRouter.route('/admin/:deviceId')
               preImageStoreDevice.imageURL = newImageFilename
               return preImageStoreDevice.save()
             })
+            .catch(error => next(createError(error.status, error.message)))
         }
         return Promise.resolve(preImageStoreDevice)
       })
