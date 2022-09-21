@@ -10,14 +10,24 @@ const beverageSchema = new Schema({
     type: String,
     required: true
   },
+  name_lower: {
+    type: String
+  },
   source: {
     type: String,
     required: true
+  },
+  source_lower: {
+    type: String
   },
   description: {
     type: String
   },
   style: {
+    type: String,
+    required: true
+  },
+  style_lower: {
     type: String
   },
   abv: {
@@ -36,5 +46,7 @@ const beverageSchema = new Schema({
     type: String
   }
 })
+
+beverageSchema.index({ name_lower: 1, source_lower: 1, style_lower: 1 })
 
 module.exports = mongoose.model('Beverage', beverageSchema)
