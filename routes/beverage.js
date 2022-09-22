@@ -18,6 +18,20 @@ const beverageRouter = express.Router()
 beverageRouter.use(bodyParser.json())
 
 beverageRouter.route('/')
+  .get(authenticate.verifyUser, (req, res, next) => {
+    User.findById(req.user.id)
+      .then(user => {
+        if (!user) return next(createError(404, 'User not found'))
+
+        return Beverage.find({ _id: { $in: user.beverageList }})
+      })
+      .then(beverageList => {
+        res.statusCode = 200;
+        res.setHeader('content-type', 'application/json')
+        res.json(beverageList)
+      })
+      .catch(next)
+  })
   .post(authenticate.verifyUser, upload.single('image'), (req, res, next) => {
     const parsed = JSON.parse(req.body.data)
     const { name, source, style } = parsed
@@ -38,16 +52,16 @@ beverageRouter.route('/')
     .then(([user, newBeverage, newImageFilename]) => {
       if (newImageFilename) newBeverage.imageURL = newImageFilename
 
-      user.authoredList.push(newBeverage._id)
+      user.beverageList.push(newBeverage._id)
       return Promise.all([
         user.save(),
         newBeverage.save()
       ])
     })
-    .then(([user, finalBeverage]) => {
+    .then(([_, finalNewBeverage]) => {
       res.statusCode = 201
       res.setHeader('content-type', 'application/json')
-      res.json(finalBeverage)
+      res.json(finalNewBeverage)
     })
     .catch(next)
   })
@@ -71,71 +85,49 @@ beverageRouter.route('/query')
       return next(createError(400, 'Missing queries'))
     }
 
-    Beverage
-      .find(query)
-      .sort({ _id: 1 })
-      .skip(page * count)
-      .limit(count)
-      .then(beverages => {
-        res.statusCode = 200
-        res.setHeader('content-type', 'application/json')
-        res.json(beverages)
-      })
-      .catch(next)
-  })
-
-beverageRouter.route('/admin/:beverageId')
-  .delete(authenticate.verifyUser, authenticate.verifyEditor, (req, res, next) => {
-    Beverage.findByIdAndDelete(req.params.beverageId)
-      .then(dbres => {
-        return Promise.all([
-          User.findById(dbres.author),
-          imageHandler.deleteImage(dbres.imageURL)
-        ])
-      })
-      .then(([user, imageDeletion]) => {
-        if (user) {
-          const indexToRemove = user.authoredList.findIndex(authored => {
-            return authored.equals(req.params.beverageId)
-          })
-          if (indexToRemove !== -1) {
-            user.authoredList.splice(indexToRemove, 1)
-            return user.save().then(() => imageDeletion)
-          }
-        }
-        return Promise.resolve(imageDeletion)
-      })
-      .then(imageDeletion => {
-        const response = {
-          success: imageDeletion ? 'partial' : 'successful',
-          error: imageDeletion
-        }
-        res.statusCode = 200
-        res.setHeader('content-type', 'application/json')
-        res.json(response)
-      })
-      .catch(next)
+    Promise.all([
+      User.findById(req.user.id),
+      Beverage
+        .find(query)
+        .sort({ _id: 1 })
+        .skip(page * count)
+        .limit(count)
+    ])
+    .then(([user, beverages]) => {
+      const userBevs = beverages.filter(beverage => beverage.author.equals(user))
+      res.statusCode = 200
+      res.setHeader('content-type', 'application/json')
+      res.json(userBevs)
+    })
+    .catch(next)
   })
 
 beverageRouter.route('/:beverageId')
   .get(authenticate.verifyUser, (req, res, next) => {
-    Beverage.findById(req.params.beverageId)
+    User.findById(req.user.id)
+      .then(user => {
+        if (!user) return next(createError(404, 'User not found'))
+
+        if (!user.beverageList.some(beverage => req.user.id.equals(beverage))) {
+          return next(createError(403, 'Beverage does not belong to user'))
+        }
+
+        return Beverage.findById(req.params.beverageId)
+      })
       .then(beverage => {
-        if (!beverage) return next(createError(404, `Beverage with id ${req.params.beverageId} not found`))
-        
-        res.statusCode = 200
+        res.statusCode = 200;
         res.setHeader('content-type', 'application/json')
         res.json(beverage)
       })
       .catch(next)
   })
   .patch(authenticate.verifyUser, upload.single('image'), (req, res, next) => {
-    Beverage.findById(req.params.beverageId)
-      .then(beverage => {
-        if (!beverage) return next(createError(404, 'Beverage not found'))
+    User.findById(req.user.id)
+      .then(user => {
+        if (!user) return next(createError(404, 'User not found'))
 
-        if (!req.user.admin && !req.user.editor && !beverage.author.equals(req.user.id)) {
-          return next(createError(403, 'You do not have permission to change this beverage'))
+        if (!user.beverageList.some(beverage => req.user.id.equals(beverage))) {
+          return next(createError(403, 'Beverage does not belong to user'))
         }
 
         const parsedBody = JSON.parse(req.body.data)
@@ -164,19 +156,52 @@ beverageRouter.route('/:beverageId')
       .then(user => {
         if (!user) return next(createError(404, 'User not found'))
 
-        const indexToRemove = user.authoredList.findIndex(authored => {
-          return authored.equals(req.params.beverageId)
+        if (!user.beverageList.some(beverage => req.user.id.equals(beverage))) {
+          return next(createError(403, 'Beverage does not belong to user'))
+        }
+
+        return Promise.all([
+          Promise.resolve(user),
+          Beverage.findById(req.params.beverageId)
+        ])
+      })
+      .then(([user, beverage]) => {
+        return Promise.all([
+          Promise.resolve(user),
+          imageHandler.deleteImage(beverage.imageURL),
+          Beverage.findByIdAndDelete(req.params.beverageId)
+        ])
+      })
+      .then(([user, imageDeletion, dbres]) => {
+        const indexToRemove = user.beverageList.findIndex(beverage => {
+          return beverage.equals(dbres._id)
         })
         if (indexToRemove !== -1) {
-          user.authoredList.splice(indexToRemove, 1)
-          return user.save()
+          user.beverageList.splice(indexToRemove, 1)
+          return user.save().then(() => imageDeletion)
         }
-        return Promise.resolve(null)
       })
-      .then(() => {
+      .then(imageDeletion => {
+        const response = {
+          success: imageDeletion ? 'partial' : 'successful',
+          error: imageDeletion ? null : 'Image removal error'
+        }
         res.statusCode = 200
         res.setHeader('content-type', 'application/json')
-        res.json({ success: 'successful' })
+        res.json(response)
+      })
+      .catch(next)
+  })
+
+beverageRouter.route('/client/:beverageId')
+  .get(authenticate.verifyDeviceClient, (req, res, next) => {
+    Beverage.findById(req.params.beverageId)
+      .then(beverage => {
+        if (!beverage) return next(createError(404, 'Beverage not found'))
+
+        res.statusCode = 200
+        res.setHeader('content-type', 'application/json')
+        res.json(beverage)
       })
       .catch(next)
   })
