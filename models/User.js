@@ -28,13 +28,7 @@ const userSchema = new Schema({
       ref: 'Device'
     }
   ],
-  authoredList: [
-    {
-      type: Schema.Types.ObjectId,
-      ref: 'Beverage'
-    }
-  ],
-  previousList: [
+  beverageList: [
     {
       type: Schema.Types.ObjectId,
       ref: 'Beverage'
