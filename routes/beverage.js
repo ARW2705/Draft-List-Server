@@ -73,11 +73,11 @@ beverageRouter.route('/query')
       page = parseInt(req.query.page)
       count = parseInt(req.query.count)
       if (req.query.name) {
-        query = { name_lower: req.query.name.toLowerCase() }
+        query = { name_lower: req.query.name.toLowerCase(), author: req.user.id }
       } else if (req.query.source) {
-        query = { source_lower: req.query.source.toLowerCase() }
+        query = { source_lower: req.query.source.toLowerCase(), author: req.user.id }
       } else if (req.query.style) {
-        query = { style_lower: req.query.style.toLowerCase() }
+        query = { style_lower: req.query.style.toLowerCase(), author: req.user.id }
       } else {
         return next(createError(400, 'Missing or invalid query type'))
       }
@@ -94,7 +94,7 @@ beverageRouter.route('/query')
         .limit(count)
     ])
     .then(([user, beverages]) => {
-      const userBevs = beverages.filter(beverage => beverage.author.equals(user))
+      const userBevs = beverages.filter(beverage => user.equals(beverage.author))
       res.statusCode = 200
       res.setHeader('content-type', 'application/json')
       res.json(userBevs)
