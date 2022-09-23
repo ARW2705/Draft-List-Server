@@ -108,7 +108,7 @@ beverageRouter.route('/:beverageId')
       .then(user => {
         if (!user) return next(createError(404, 'User not found'))
 
-        if (!user.beverageList.some(beverage => req.user.id.equals(beverage))) {
+        if (!user.beverageList.some(beverage => beverage.equals(req.params.beverageId))) {
           return next(createError(403, 'Beverage does not belong to user'))
         }
 
@@ -126,7 +126,7 @@ beverageRouter.route('/:beverageId')
       .then(user => {
         if (!user) return next(createError(404, 'User not found'))
 
-        if (!user.beverageList.some(beverage => req.user.id.equals(beverage))) {
+        if (!user.beverageList.some(beverage => beverage.equals(req.params.beverageId))) {
           return next(createError(403, 'Beverage does not belong to user'))
         }
 
@@ -156,7 +156,7 @@ beverageRouter.route('/:beverageId')
       .then(user => {
         if (!user) return next(createError(404, 'User not found'))
 
-        if (!user.beverageList.some(beverage => req.user.id.equals(beverage))) {
+        if (!user.beverageList.some(beverage => beverage.equals(req.params.beverageId))) {
           return next(createError(403, 'Beverage does not belong to user'))
         }
 
