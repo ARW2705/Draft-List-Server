@@ -85,21 +85,17 @@ beverageRouter.route('/query')
       return next(createError(400, 'Missing queries'))
     }
 
-    Promise.all([
-      User.findById(req.user.id),
-      Beverage
-        .find(query)
-        .sort({ _id: 1 })
-        .skip(page * count)
-        .limit(count)
-    ])
-    .then(([user, beverages]) => {
-      const userBevs = beverages.filter(beverage => user.equals(beverage.author))
-      res.statusCode = 200
-      res.setHeader('content-type', 'application/json')
-      res.json(userBevs)
-    })
-    .catch(next)
+    Beverage
+      .find(query)
+      .sort({ _id: 1 })
+      .skip(page * count)
+      .limit(count)
+      .then(beverages => {
+        res.statusCode = 200
+        res.setHeader('content-type', 'application/json')
+        res.json(beverages)
+      })
+      .catch(next)
   })
 
 beverageRouter.route('/:beverageId')
