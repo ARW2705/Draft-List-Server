@@ -56,17 +56,22 @@ draftRouter.route('/device/:deviceId')
       .then(device => {
         if (!device) return next(createError(404, 'Device not found'))
 
-        return Draft.create(req.body)
-          .populate('container.containerInfo')
-          .then(draft => {
-            device.draftList.push(draft)
-            return device.save()
-              .then(() => {
-                res.statusCode = 200
-                res.setHeader('content-type', 'application/json')
-                res.json(draft)
-              })
-          })
+        return Draft.create({
+          author: req.user.id,
+          beverage: req.body.beverage,
+          container: req.body.container
+        })
+        .populate('beverage')
+        .populate('container.containerInfo')
+        .then(draft => {
+          device.draftList.push(draft)
+          return device.save()
+            .then(() => {
+              res.statusCode = 200
+              res.setHeader('content-type', 'application/json')
+              res.json(draft)
+            })
+        })
       })
       .catch(next)
   })
