@@ -44,6 +44,10 @@ const beverageSchema = new Schema({
   },
   contentColor: {
     type: String
+  },
+  isArchived: {
+    type: Boolean,
+    default: false
   }
 })
 
