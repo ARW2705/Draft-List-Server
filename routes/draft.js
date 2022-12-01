@@ -61,12 +61,14 @@ draftRouter.route('/device/:deviceId')
           beverage: req.body.beverage,
           container: req.body.container
         })
-        .populate('beverage')
-        .populate('container.containerInfo')
         .then(draft => {
-          device.draftList.push(draft)
-          return device.save()
-            .then(() => {
+          device.draftList.push(draft._id)
+          return device.save().then(() => draft._id)
+        })
+        .then(draftId => {
+          return Draft.findById(draftId)
+            .populate('container.containerInfo')
+            .then(draft => {
               res.statusCode = 200
               res.setHeader('content-type', 'application/json')
               res.json(draft)
