@@ -42,7 +42,7 @@ beverageRouter.route('/')
       style_lower: style.toLowerCase(),
       author: req.user.id
     }
-    const imagePromise = req.image ? imageHandler.storeImage(req.image) : Promise.resolve(null)
+    const imagePromise = req.file ? imageHandler.storeImage(req.file) : Promise.resolve(null)
 
     Promise.all([
       User.findById(req.user.id),
@@ -93,7 +93,7 @@ beverageRouter.route('/query')
       .then(beverages => {
         res.statusCode = 200
         res.setHeader('content-type', 'application/json')
-        res.json(beverages)
+        res.json(beverages.map(beverage => beverage._id))
       })
       .catch(next)
   })
